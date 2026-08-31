@@ -8,9 +8,9 @@ CREATE TABLE IF NOT EXISTS user (
     password_hash VARCHAR(255) NOT NULL,
     role ENUM(
         'EMPLOYEE', 
-        'TECHNICIAN', 
         'ADMIN'
-    ) DEFAULT 'EMPLOYEE',
+    ) DEFAULT 'EMPLOYEE', -- Curstomer/user???
+  
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

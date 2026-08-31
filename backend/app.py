@@ -101,7 +101,7 @@ def register():
     if not name or not email or not password:
         return jsonify({"error": "Name, email, and password are required"}), 400
 
-    if role not in ['EMPLOYEE', 'TECHNICIAN', 'ADMIN']:
+    if role not in ['EMPLOYEE', 'ADMIN']:
         role = 'EMPLOYEE'
 
     try:
@@ -168,6 +168,8 @@ def get_user_by_id(id):
         return jsonify(user), 200
     except mysql.connector.Error as err:
         return jsonify({"error": str(err)}), 500
+    
+
 
 @app.route("/user/<int:id>", methods=['DELETE'])
 @app.route("/api/users/<int:id>", methods=['DELETE'])
