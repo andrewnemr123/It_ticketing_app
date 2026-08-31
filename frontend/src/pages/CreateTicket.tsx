@@ -1,12 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -20,31 +18,41 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
 
-const formSchema = z
-  .object({
-    username: z
-      .string()
-      .min(3, "Username must be at least 3 characters.")
-      .max(32, "Username must be at most 32 characters."),
-    password: z.string().min(8, "Password must be at least 8 characters."),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match.",
-    path: ["confirmPassword"],
-  });
+const formSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  category: z.string().min(1, "Category is required"),
+  description: z.string().min(1, "Description is required"),
+});
 
 type FormValues = z.infer<typeof formSchema>;
 
-function SignUp() {
+const categories = [
+  { label: "Choose category", value: "" },
+  { label: "Hardware", value: "hardware" },
+  { label: "Software", value: "software" },
+  { label: "Network", value: "network" },
+  { label: "Permissions", value: "permissions" },
+  { label: "Security", value: "security" },
+  { label: "Email", value: "email" },
+];
+
+function CreateTicket() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: "",
-      password: "",
-      confirmPassword: "",
+      title: "",
+      category: "",
+      description: "",
     },
   });
 
@@ -58,31 +66,24 @@ function SignUp() {
     <div className="flex h-screen w-screen items-center justify-center">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Create an account</CardTitle>
-          <CardDescription>
-            Enter your account details below to create an account
-          </CardDescription>
-          <CardAction>
-            <Button variant="link">
-              <Link to="/login">Login</Link>
-            </Button>
-          </CardAction>
+          <CardTitle>Create Ticket</CardTitle>
+          <CardDescription>Enter your ticket details below</CardDescription>
         </CardHeader>
 
         <CardContent>
-          <form id="signup-form" onSubmit={form.handleSubmit(onSubmit)}>
+          <form id="create-ticket-form" onSubmit={form.handleSubmit(onSubmit)}>
             <FieldGroup>
               <Controller
-                name="username"
+                name="title"
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="signup-username">Username</FieldLabel>
+                    <FieldLabel htmlFor="create-ticket-title">Title</FieldLabel>
                     <Input
                       {...field}
-                      id="signup-username"
+                      id="create-ticket-title"
                       type="text"
-                      autoComplete="username"
+                      autoComplete="off"
                       aria-invalid={fieldState.invalid}
                     />
                     {fieldState.invalid && (
@@ -93,38 +94,50 @@ function SignUp() {
               />
 
               <Controller
-                name="password"
+                name="category"
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="signup-password">Password</FieldLabel>
-                    <Input
-                      {...field}
-                      id="signup-password"
-                      type="password"
-                      autoComplete="new-password"
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
-                  </Field>
-                )}
-              />
-
-              <Controller
-                name="confirmPassword"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="signup-confirm-password">
-                      Confirm Password
+                    <FieldLabel htmlFor="create-ticket-category">
+                      Category
                     </FieldLabel>
-                    <Input
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        id="create-ticket-category"
+                        aria-invalid={fieldState.invalid}
+                      >
+                        <SelectValue placeholder={categories[0].label} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem
+                            key={category.value}
+                            value={category.value}
+                          >
+                            {category.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                name="description"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="create-ticket-description">
+                      Description
+                    </FieldLabel>
+                    <Textarea
                       {...field}
-                      id="signup-confirm-password"
-                      type="password"
-                      autoComplete="new-password"
+                      id="create-ticket-description"
+                      autoComplete="off"
                       aria-invalid={fieldState.invalid}
                     />
                     {fieldState.invalid && (
@@ -140,14 +153,14 @@ function SignUp() {
         <CardFooter className="flex-col gap-2">
           <Button
             type="submit"
-            form="signup-form"
+            form="create-ticket-form"
             className="w-full"
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting && (
               <Spinner data-icon="inline-start" />
             )}
-            {form.formState.isSubmitting ? "Creating" : "Create"}
+            {form.formState.isSubmitting ? "Creating Ticket" : "Create Ticket"}
           </Button>
         </CardFooter>
       </Card>
@@ -155,4 +168,4 @@ function SignUp() {
   );
 }
 
-export default SignUp;
+export default CreateTicket;
