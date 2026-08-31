@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS ticket (
       'Resolved', 
       'Closed'
     ) DEFAULT 'New',
+    is_deleted BOOLEAN DEFAULT FALSE, -- Soft delete flag to allow to see previous tickets in the system and not delete them
     creator_id INT NOT NULL,
     assigned_to_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

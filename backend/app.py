@@ -10,7 +10,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.json.sort_keys = False
-CORS(app)  # Enable CORS for React frontend
+CORS(app) # Enable CORS for React frontend
 
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
@@ -25,7 +25,7 @@ def get_db_connection():
 
 @app.route("/")
 def home():
-    return "<h2>IT Ticketing Backend (Login Service)</h2>"
+    return "<h2>IT Ticketing Backend</h2>"
 
 @app.route("/health")
 def health():
@@ -55,7 +55,10 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("SELECT id, name, email, password_hash, role FROM user WHERE email = %s", (email,))
+        cursor.execute(
+            "SELECT id, name, email, password_hash, role, is_deleted FROM user WHERE email = %s AND (is_deleted = FALSE OR is_deleted IS NULL)",
+            (email,)
+        )
         user = cursor.fetchone()
 
         cursor.close()
@@ -108,16 +111,30 @@ def register():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("SELECT id FROM user WHERE email = %s", (email,))
+        cursor.execute("SELECT id, is_deleted FROM user WHERE email = %s", (email,))
         existing = cursor.fetchone()
-        if existing:
-            cursor.close()
-            conn.close()
-            return jsonify({"error": "An account with this email already exists"}), 409
-
+        
         hashed_password = generate_password_hash(password)
 
-        sql = "INSERT INTO user (name, email, password_hash, role) VALUES (%s, %s, %s, %s)"
+        if existing:
+            if existing.get('is_deleted'):
+                cursor.execute(
+                    "UPDATE user SET name = %s, password_hash = %s, role = %s, is_deleted = FALSE WHERE id = %s",
+                    (name, hashed_password, role, existing['id'])
+                )
+                conn.commit()
+                cursor.close()
+                conn.close()
+                return jsonify({
+                    "message": "User registered successfully",
+                    "user": {"id": existing['id'], "name": name, "email": email, "role": role}
+                }), 201
+            else:
+                cursor.close()
+                conn.close()
+                return jsonify({"error": "An account with this email already exists"}), 409
+
+        sql = "INSERT INTO user (name, email, password_hash, role, is_deleted) VALUES (%s, %s, %s, %s, FALSE)"
         cursor.execute(sql, (name, email, hashed_password, role))
         conn.commit()
 
@@ -144,7 +161,7 @@ def get_users():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id, name, email, role, created_at FROM user")
+        cursor.execute("SELECT id, name, email, role, created_at FROM user WHERE (is_deleted = FALSE OR is_deleted IS NULL)")
         users = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -157,7 +174,7 @@ def get_user_by_id(id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id, name, email, role, created_at FROM user WHERE id = %s", (id,))
+        cursor.execute("SELECT id, name, email, role, created_at FROM user WHERE id = %s AND (is_deleted = FALSE OR is_deleted IS NULL)", (id,))
         user = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -168,8 +185,6 @@ def get_user_by_id(id):
         return jsonify(user), 200
     except mysql.connector.Error as err:
         return jsonify({"error": str(err)}), 500
-    
-
 
 @app.route("/user/<int:id>", methods=['DELETE'])
 @app.route("/api/users/<int:id>", methods=['DELETE'])
@@ -178,7 +193,7 @@ def delete_user(id):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("SELECT id, name, email FROM user WHERE id = %s", (id,))
+        cursor.execute("SELECT id, name, email FROM user WHERE id = %s AND (is_deleted = FALSE OR is_deleted IS NULL)", (id,))
         user = cursor.fetchone()
 
         if not user:
@@ -186,7 +201,7 @@ def delete_user(id):
             conn.close()
             return jsonify({"error": f"User {id} not found"}), 404
 
-        cursor.execute("DELETE FROM user WHERE id = %s", (id,))
+        cursor.execute("UPDATE user SET is_deleted = TRUE WHERE id = %s", (id,))
         conn.commit()
 
         cursor.close()
@@ -194,6 +209,78 @@ def delete_user(id):
 
         return jsonify({
             "message": f"User {id} ({user['email']}) deleted successfully"
+        }), 200
+
+    except mysql.connector.Error as err:
+        return jsonify({"error": str(err)}), 500
+
+@app.route("/user/<int:id>", methods=['PUT', 'PATCH'])
+@app.route("/api/users/<int:id>", methods=['PUT', 'PATCH'])
+def update_user(id):
+    data = request.get_json() or {}
+    name = data.get('name')
+    email = data.get('email')
+    password = data.get('password')
+    role = data.get('role')
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT id, name, email, role FROM user WHERE id = %s AND (is_deleted = FALSE OR is_deleted IS NULL)", (id,))
+        user = cursor.fetchone()
+
+        if not user:
+            cursor.close()
+            conn.close()
+            return jsonify({"error": f"User {id} not found"}), 404
+
+        updates = []
+        params = []
+
+        if name is not None:
+            updates.append("name = %s")
+            params.append(name.strip())
+
+        if email is not None:
+            email_clean = email.strip().lower()
+            cursor.execute("SELECT id FROM user WHERE email = %s AND id != %s AND (is_deleted = FALSE OR is_deleted IS NULL)", (email_clean, id))
+            if cursor.fetchone():
+                cursor.close()
+                conn.close()
+                return jsonify({"error": "This email is already in use by another account"}), 409
+            updates.append("email = %s")
+            params.append(email_clean)
+
+        if password is not None and password != "":
+            hashed_password = generate_password_hash(password)
+            updates.append("password_hash = %s")
+            params.append(hashed_password)
+
+        if role is not None:
+            if role in ['EMPLOYEE', 'ADMIN']:
+                updates.append("role = %s")
+                params.append(role)
+
+        if not updates:
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "No changes provided", "user": user}), 200
+
+        params.append(id)
+        sql = f"UPDATE user SET {', '.join(updates)} WHERE id = %s"
+        cursor.execute(sql, tuple(params))
+        conn.commit()
+
+        cursor.execute("SELECT id, name, email, role, created_at FROM user WHERE id = %s", (id,))
+        updated_user = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "message": f"User {id} updated successfully",
+            "user": updated_user
         }), 200
 
     except mysql.connector.Error as err:
