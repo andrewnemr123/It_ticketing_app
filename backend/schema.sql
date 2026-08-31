@@ -23,15 +23,33 @@ CREATE TABLE IF NOT EXISTS ticket (
     ticket_number VARCHAR(30) UNIQUE NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    category ENUM('Hardware', 'Software', 'Network', 'Access / Permissions', 'Security', 'Email', 'Other') DEFAULT 'Software',
-    priority ENUM('Low', 'Medium', 'High', 'Critical') DEFAULT 'Medium',
-    status ENUM('New', 'Open', 'In Progress', 'Waiting for User', 'Resolved', 'Closed') DEFAULT 'New',
+    category ENUM(
+      'Hardware', 
+      'Software', 
+      'Network', 
+      'Access / Permissions', 
+      'Security', 
+      'Email', 
+      'Other'
+    ) DEFAULT 'Software',
+    priority ENUM(
+      'Low', 
+      'Medium', 
+      'High', 
+      'Critical'
+    ) DEFAULT 'Medium',
+    status ENUM('New', 
+      'Open', 
+      'In Progress', 
+      'Waiting for User', 
+      'Resolved', 'Closed'
+      ) DEFAULT 'New',
     creator_id INT NOT NULL,
     assigned_to_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (creator_id) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (creator_id) REFERENCES user(id),
     FOREIGN KEY (assigned_to_id) REFERENCES user(id) ON DELETE SET NULL
 );
 
@@ -39,29 +57,34 @@ CREATE TABLE IF NOT EXISTS ticket_event (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ticket_id INT NOT NULL,
     user_id INT NOT NULL,
-    event_type ENUM('COMMENT', 'INTERNAL_NOTE', 'STATUS_CHANGE', 'ASSIGNMENT_CHANGE', 'PRIORITY_CHANGE') DEFAULT 'COMMENT',
-    old_value VARCHAR(255) NULL,
-    new_value VARCHAR(255) NULL,
+    event_type ENUM(
+      'COMMENT', 
+      'INTERNAL_NOTE', 
+      'STATUS_CHANGE', 
+      'ASSIGNMENT_CHANGE', 
+      'PRIORITY_CHANGE'
+      ) DEFAULT 'COMMENT',
     comment_text TEXT NULL,
-    is_internal BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (ticket_id) REFERENCES ticket(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+    FOREIGN KEY (ticket_id) REFERENCES ticket(id),
+    FOREIGN KEY (user_id) REFERENCES user(id)
 );
 
-CREATE TABLE IF NOT EXISTS ticket_attachment (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    ticket_id INT NOT NULL,
-    user_id INT NOT NULL,
-    filename VARCHAR(255) NOT NULL,
-    filepath VARCHAR(500) NOT NULL,
-    filesize INT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+"""Phase 2"""
+
+-- CREATE TABLE IF NOT EXISTS ticket_attachment (
+--     id INT AUTO_INCREMENT PRIMARY KEY,
+--     ticket_id INT NOT NULL,
+--     user_id INT NOT NULL,
+--     filename VARCHAR(255) NOT NULL,
+--     filepath VARCHAR(500) NOT NULL,
+--     filesize INT NULL,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (ticket_id) REFERENCES ticket(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
-);
+--     FOREIGN KEY (ticket_id) REFERENCES ticket(id),
+--     FOREIGN KEY (user_id) REFERENCES user(id)
+-- );
 
 INSERT INTO user (name, email, password_hash, role)
 VALUES 
