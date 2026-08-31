@@ -1,4 +1,6 @@
-CREATE DATABASE IF NOT EXISTS it_ticketing;
+CREATE DATABASE IF NOT EXISTS it_ticketing
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
 USE it_ticketing;
 
 CREATE TABLE IF NOT EXISTS user (
@@ -10,9 +12,13 @@ CREATE TABLE IF NOT EXISTS user (
         'EMPLOYEE', 
         'ADMIN'
     ) DEFAULT 'EMPLOYEE', -- Curstomer/user???
-  
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_user_email (email), -- Speed up data retrieval for login and user management
+    INDEX idx_user_status (is_deleted, role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; -- For ACID compliance / Strict foreign key constraints and transactions
 
 CREATE TABLE IF NOT EXISTS ticket (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -48,9 +54,19 @@ CREATE TABLE IF NOT EXISTS ticket (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
+    
     FOREIGN KEY (creator_id) REFERENCES user(id),
-    FOREIGN KEY (assigned_to_id) REFERENCES user(id) ON DELETE SET NULL
-);
+    FOREIGN KEY (assigned_to_id) REFERENCES user(id) ON DELETE SET NULL,
+    
+    INDEX idx_ticket_number (ticket_number),
+    INDEX idx_ticket_creator (creator_id),
+    INDEX idx_ticket_assigned (assigned_to_id),
+    INDEX idx_ticket_status (status),
+    INDEX idx_ticket_priority (priority),
+    INDEX idx_ticket_category (category),
+    INDEX idx_ticket_created (created_at DESC),
+    INDEX idx_ticket_composite (status, priority, created_at DESC)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS ticket_event (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -70,8 +86,11 @@ CREATE TABLE IF NOT EXISTS ticket_event (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (ticket_id) REFERENCES ticket(id),
-    FOREIGN KEY (user_id) REFERENCES user(id)
-);
+    FOREIGN KEY (user_id) REFERENCES user(id),
+
+    INDEX idx_event_ticket (ticket_id, created_at ASC),
+    INDEX idx_event_user (user_id)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Phase 2
 
@@ -85,14 +104,16 @@ CREATE TABLE IF NOT EXISTS ticket_event (
 --     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 --     
 --     FOREIGN KEY (ticket_id) REFERENCES ticket(id),
---     FOREIGN KEY (user_id) REFERENCES user(id)
--- );
+--     FOREIGN KEY (user_id) REFERENCES user(id),
 
-INSERT INTO user (name, email, password_hash, role)
+--     INDEX idx_attachment_ticket (ticket_id)
+-- )ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO user (name, email, password_hash, role, is_deleted)
 VALUES 
-  ('System Admin', 'admin@company.com', 'Password123!', 'ADMIN'),
-  ('Alex Rivers (IT Support)', 'tech@company.com', 'Password123!', 'TECHNICIAN'),
-  ('Sarah Jenkins (Employee)', 'sarah@company.com', 'Password123!', 'EMPLOYEE')
+  ('System Admin', 'admin@company.com', 'Password123!', 'ADMIN', FALSE),
+  ('Alex Rivers (IT Support)', 'tech@company.com', 'Password123!', 'EMPLOYEE', FALSE),
+  ('Sarah Jenkins (Employee)', 'sarah@company.com', 'Password123!', 'EMPLOYEE', FALSE)
 ON DUPLICATE KEY UPDATE email = email;
 
 INSERT INTO ticket (id, ticket_number, title, description, category, priority, status, creator_id, assigned_to_id)

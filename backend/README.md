@@ -1,12 +1,14 @@
-# IT Ticketing Backend (Flask)
+# IT Ticketing Backend (Flask + JWT)
 
-Lightweight, secure Flask backend using `mysql.connector` and `werkzeug.security` for user login, registration, and user management (`EMPLOYEE`, `TECHNICIAN`, `ADMIN`).
+Lightweight, secure Flask backend using `mysql.connector`, `werkzeug.security`, and `PyJWT` for token-based authentication (`EMPLOYEE`, `ADMIN`).
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Setup Guide for New Machines / Developers
 
-### 1. Setup Virtual Environment
+If you or another developer are setting up this backend on a new machine, follow these steps:
+
+### 1. Create and Activate a Virtual Environment
 ```bash
 cd backend
 python3 -m venv venv
@@ -18,44 +20,54 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3. Setup Database & Environment
-Copy `.env.example` to `.env` and verify your MySQL connection settings:
+### 3. Setup Your Local Environment Variables
+Copy `.env.example` to create your own local `.env` file (which is gitignored and will not overwrite other developers' settings):
 ```bash
 cp .env.example .env
 ```
+Open `.env` and set your local MySQL credentials:
+```ini
+PORT=5001
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_local_mysql_password
+DB_NAME=it_ticketing
+```
 
-Ensure MySQL is running on port `3306` and import your schema:
+### 4. Initialize the MySQL Database
+Ensure your local MySQL server is running, then import the complete schema and seed accounts:
 ```bash
 mysql -u root -p -h 127.0.0.1 -P 3306 < schema.sql
 ```
-*(Or open and execute `schema.sql` in MySQL Workbench on your `Local instance 3306`)*
+*(Alternatively: Open MySQL Workbench, open `schema.sql`, and click the ⚡ Execute button).*
 
-### 4. Run the Flask Server
+### 5. Run the Server
 ```bash
 python app.py
 ```
-Server starts on **`http://localhost:5001`**.
+The server will start on **`http://localhost:5001`**.
 
 ---
 
 ## 🧪 Testing the Backend
 
 ### Automated Test Suite
-Run the built-in test script:
+Run the built-in edge case test script:
 ```bash
-python test_app.py
+python test.py
 ```
 
 ---
 
-### 📡 cURL Tests
+## 📡 cURL Tests
 
-#### 1. Check Server & Database Health
+#### 1. Check Health
 ```bash
 curl http://localhost:5001/health
 ```
 
-#### 2. Test User Registration
+#### 2. User Registration (Returns JWT Token)
 ```bash
 curl -X POST http://localhost:5001/register \
   -H "Content-Type: application/json" \
@@ -67,7 +79,7 @@ curl -X POST http://localhost:5001/register \
   }'
 ```
 
-#### 3. Test Successful Login
+#### 3. User Login (Returns JWT Access Token)
 ```bash
 curl -X POST http://localhost:5001/login \
   -H "Content-Type: application/json" \
@@ -76,37 +88,50 @@ curl -X POST http://localhost:5001/login \
     "password": "SecurePassword123!"
   }'
 ```
-
-#### 4. List All Users
-```bash
-curl http://localhost:5001/users
-```
-
-#### 5. Get User by ID
-```bash
-curl http://localhost:5001/user/1
-```
-
-#### 6. Delete User by ID
-```bash
-curl -X DELETE http://localhost:5001/user/4
-```
-**Expected Response (200 OK):**
+**Response:**
 ```json
 {
-  "message": "User 4 (jane@company.com) deleted successfully"
+  "message": "Login successful",
+  "access_token": "eyJhbGciOi...",
+  "token_type": "Bearer",
+  "user": {
+    "id": 4,
+    "name": "Jane Developer",
+    "email": "jane@company.com",
+    "role": "EMPLOYEE"
+  }
 }
+```
+
+#### 4. Access Protected Profile (`/me`)
+```bash
+curl http://localhost:5001/me \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN_HERE"
+```
+
+#### 5. Update User (`PUT` / `PATCH`)
+```bash
+curl -X PATCH http://localhost:5001/user/4 \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Jane Senior Developer"}'
+```
+
+#### 6. Delete User (`DELETE` - Soft Delete)
+```bash
+curl -X DELETE http://localhost:5001/user/4
 ```
 
 ---
 
 ## 🔐 API Endpoints Summary
 
-| Method | Route | Description |
-|---|---|---|
-| `GET` | `/health` | Server and MySQL database health check |
-| `POST` | `/login` (or `/api/auth/login`) | User authentication and role retrieval |
-| `POST` | `/register` (or `/api/auth/register`) | Create new user account with hashed password |
-| `GET` | `/users` | List all users |
-| `GET` | `/user/<id>` | Fetch single user by ID |
-| `DELETE` | `/user/<id>` (or `/api/users/<id>`) | Delete a user account by ID |
+| Method | Route | Description | Protected |
+|---|---|---|---|
+| `GET` | `/health` | Server and MySQL database health check | ❌ |
+| `POST` | `/login` | Authenticate and receive signed JWT token | ❌ |
+| `POST` | `/register` | Create new user and receive signed JWT token | ❌ |
+| `GET` | `/me` | Get current logged in user profile via Bearer token | ✅ (`@token_required`) |
+| `GET` | `/users` | List all active users | ❌ |
+| `GET` | `/user/<id>` | Fetch single user by ID | ❌ |
+| `PATCH` | `/user/<id>` | Update user profile / password | ❌ |
+| `DELETE` | `/user/<id>` | Soft delete user account | ❌ |
