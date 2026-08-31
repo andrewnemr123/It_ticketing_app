@@ -1,6 +1,6 @@
 # IT Ticketing Backend (Flask)
 
-Lightweight, secure Flask backend using `mysql.connector` and `werkzeug.security` for user login, registration, and role-based accounts (`EMPLOYEE`, `TECHNICIAN`, `ADMIN`).
+Lightweight, secure Flask backend using `mysql.connector` and `werkzeug.security` for user login, registration, and user management (`EMPLOYEE`, `TECHNICIAN`, `ADMIN`).
 
 ---
 
@@ -50,23 +50,12 @@ python test_app.py
 
 ### 📡 cURL Tests
 
-You can copy and run these commands directly in a new terminal tab while the server is running:
-
 #### 1. Check Server & Database Health
 ```bash
 curl http://localhost:5001/health
 ```
-**Expected Response:**
-```json
-{
-  "status": "ok",
-  "database": "connected"
-}
-```
 
----
-
-#### 2. Test User Registration (with secure password hashing)
+#### 2. Test User Registration
 ```bash
 curl -X POST http://localhost:5001/register \
   -H "Content-Type: application/json" \
@@ -77,22 +66,8 @@ curl -X POST http://localhost:5001/register \
     "role": "EMPLOYEE"
   }'
 ```
-**Expected Response (201 Created):**
-```json
-{
-  "message": "User registered successfully",
-  "user": {
-    "id": 4,
-    "name": "Jane Developer",
-    "email": "jane@company.com",
-    "role": "EMPLOYEE"
-  }
-}
-```
 
----
-
-#### 3. Test Successful Login (Valid Credentials)
+#### 3. Test Successful Login
 ```bash
 curl -X POST http://localhost:5001/login \
   -H "Content-Type: application/json" \
@@ -101,86 +76,26 @@ curl -X POST http://localhost:5001/login \
     "password": "SecurePassword123!"
   }'
 ```
-**Expected Response (200 OK):**
-```json
-{
-  "message": "Login successful",
-  "user": {
-    "id": 4,
-    "name": "Jane Developer",
-    "email": "jane@company.com",
-    "role": "EMPLOYEE"
-  }
-}
-```
 
----
-
-#### 4. Test Failed Login (Wrong Password)
-```bash
-curl -X POST http://localhost:5001/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "jane@company.com",
-    "password": "WrongPassword!"
-  }'
-```
-**Expected Response (401 Unauthorized):**
-```json
-{
-  "error": "Invalid email or password"
-}
-```
-
----
-
-#### 5. Test Failed Login (Non-existent Email)
-```bash
-curl -X POST http://localhost:5001/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "nonexistent@company.com",
-    "password": "AnyPassword"
-  }'
-```
-**Expected Response (401 Unauthorized):**
-```json
-{
-  "error": "Invalid email or password"
-}
-```
-
----
-
-#### 6. List All Registered Users
+#### 4. List All Users
 ```bash
 curl http://localhost:5001/users
 ```
-**Expected Response (200 OK):**
-```json
-[
-  {
-    "id": 1,
-    "name": "System Admin",
-    "email": "admin@company.com",
-    "role": "ADMIN",
-    "created_at": "..."
-  },
-  {
-    "id": 2,
-    "name": "Alex Rivers (IT Support)",
-    "email": "tech@company.com",
-    "role": "TECHNICIAN",
-    "created_at": "..."
-  }
-]
-```
 
----
-
-#### 7. Get User by ID
+#### 5. Get User by ID
 ```bash
 curl http://localhost:5001/user/1
+```
+
+#### 6. Delete User by ID
+```bash
+curl -X DELETE http://localhost:5001/user/4
+```
+**Expected Response (200 OK):**
+```json
+{
+  "message": "User 4 (jane@company.com) deleted successfully"
+}
 ```
 
 ---
@@ -194,3 +109,4 @@ curl http://localhost:5001/user/1
 | `POST` | `/register` (or `/api/auth/register`) | Create new user account with hashed password |
 | `GET` | `/users` | List all users |
 | `GET` | `/user/<id>` | Fetch single user by ID |
+| `DELETE` | `/user/<id>` (or `/api/users/<id>`) | Delete a user account by ID |

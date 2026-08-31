@@ -169,6 +169,34 @@ def get_user_by_id(id):
     except mysql.connector.Error as err:
         return jsonify({"error": str(err)}), 500
 
+@app.route("/user/<int:id>", methods=['DELETE'])
+@app.route("/api/users/<int:id>", methods=['DELETE'])
+def delete_user(id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT id, name, email FROM user WHERE id = %s", (id,))
+        user = cursor.fetchone()
+
+        if not user:
+            cursor.close()
+            conn.close()
+            return jsonify({"error": f"User {id} not found"}), 404
+
+        cursor.execute("DELETE FROM user WHERE id = %s", (id,))
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "message": f"User {id} ({user['email']}) deleted successfully"
+        }), 200
+
+    except mysql.connector.Error as err:
+        return jsonify({"error": str(err)}), 500
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5001))
     app.run(host='0.0.0.0', port=port, debug=True)
