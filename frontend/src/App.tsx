@@ -27,6 +27,9 @@ function App() {
         {/* Admin-protected routes */}
         <Route element={<ProtectedAdminRoutes />}>
           <Route path="/admin" element={<AdminDashBoard />} />
+          <Route path="/admin/tickets" />
+          <Route path="/admin/users" />
+          <Route path="/admin/reports" />
         </Route>
 
         {/* Public routes */}
