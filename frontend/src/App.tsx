@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./App.css";
-import { ProtectedUserRoutes, ProtectedAdminRoutes } from "@/utils/ProtectedRoutes";
+import {
+  ProtectedUserRoutes,
+  ProtectedAdminRoutes,
+} from "@/utils/ProtectedRoutes";
 import CreateTicket from "@/pages/CreateTicket";
 import Login from "@/pages/Login";
 import SignUp from "@/pages/SignUp";
 import { AdminDashBoard, UserDashBoard } from "@/pages/DashBoard";
+import ManageTickets from "./pages/admin/ManageTickets";
 
 function App() {
   const [isDarkMode, _] = useState(true);
@@ -27,7 +31,7 @@ function App() {
         {/* Admin-protected routes */}
         <Route element={<ProtectedAdminRoutes />}>
           <Route path="/admin" element={<AdminDashBoard />} />
-          <Route path="/admin/tickets" />
+          <Route path="/admin/tickets" element={<ManageTickets />} />
           <Route path="/admin/users" />
           <Route path="/admin/reports" />
         </Route>

@@ -16,7 +16,7 @@ type DashBoardItemProps = {
   to?: string;
 };
 
-function DashBoardItem({ icon, name, to }: DashBoardItemProps) {
+export function DashBoardItem({ icon, name, to }: DashBoardItemProps) {
   const content = (
     <Card className="size-50 flex flex-col items-center justify-center hover:-translate-y-2 hover:text-primary hover:shadow-2xl active:translate-y-0 active:shadow-md cursor-pointer">
       <FontAwesomeIcon icon={icon} className="text-5xl" />
