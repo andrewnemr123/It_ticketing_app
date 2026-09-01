@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import {
@@ -21,6 +21,7 @@ function formatDate(value: string) {
 }
 
 export default function MyTickets() {
+  const navigate = useNavigate();
   const { logout } = useAuth();
 
   const { data, isLoading, error } = useQuery({
@@ -77,7 +78,11 @@ export default function MyTickets() {
           </TableHeader>
           <TableBody>
             {tickets.map((ticket) => (
-              <TableRow key={ticket.id}>
+              <TableRow
+                key={ticket.id}
+                onClick={() => navigate(`/tickets/${ticket.id}`)}
+                className="hover:cursor-pointer"
+              >
                 <TableCell>{ticket.ticket_number}</TableCell>
                 <TableCell>{ticket.title}</TableCell>
                 <TableCell>{ticket.category}</TableCell>

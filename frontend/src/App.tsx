@@ -14,6 +14,7 @@ import MyTickets from "@/pages/MyTickets";
 import ManageTickets from "@/pages/admin/ManageTickets";
 import ManageUsers from "@/pages/admin/ManageUsers";
 import Unauthorized from "@/pages/Unauthorized";
+import SeeTicket from "./pages/SeeTicket";
 
 function App() {
   const [isDarkMode] = useState(true);
@@ -31,6 +32,7 @@ function App() {
             <Route path="/" element={<UserDashBoard />} />
             <Route path="/tickets" element={<MyTickets />} />
             <Route path="/tickets/create" element={<CreateTicket />} />
+            <Route path="/tickets/:ticket_id" element={<SeeTicket />} />
           </Route>
 
           {/* Admin-protected routes */}
