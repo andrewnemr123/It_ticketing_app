@@ -1,9 +1,22 @@
 import { Outlet, Navigate } from "react-router-dom";
 
-function ProtectedRoutes() {
-  // TODO: route depending on authentication
+export function ProtectedUserRoutes() {
   const user = true;
-  return user ? <Outlet /> : <Navigate to="/login" />;
+
+  return user ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
-export default ProtectedRoutes;
+export function ProtectedAdminRoutes() {
+  const user = true;
+  const isAdmin = true;
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  return <Outlet />;
+}

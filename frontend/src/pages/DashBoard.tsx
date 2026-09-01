@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faChartPie,
   faGear,
+  faPlus,
   faTicket,
   faUsersGear,
 } from "@fortawesome/free-solid-svg-icons";
@@ -22,7 +23,7 @@ function DashBoardItem({ icon, name }: DashBoardItemProps) {
   );
 }
 
-function DashBoard() {
+export function AdminDashBoard() {
   return (
     <div className="flex w-screen h-screen items-center justify-center gap-6">
       <DashBoardItem icon={faTicket} name="Manage Tickets" />
@@ -33,4 +34,12 @@ function DashBoard() {
   );
 }
 
-export default DashBoard;
+export function UserDashBoard() {
+  return (
+    <div className="flex w-screen h-screen items-center justify-center gap-6">
+      <DashBoardItem icon={faPlus} name="Create Ticket" />
+      <DashBoardItem icon={faTicket} name="My Tickets" />
+      <DashBoardItem icon={faGear} name="Settings" />
+    </div>
+  );
+}
