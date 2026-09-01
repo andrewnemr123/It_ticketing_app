@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -21,16 +22,17 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { useAuth } from "@/lib/auth";
+import { ApiError } from "@/lib/api";
 
 const formSchema = z
   .object({
-    username: z
+    name: z
       .string()
-      .min(3, "Username must be at least 3 characters.")
-      .max(32, "Username must be at most 32 characters."),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters."),
+      .min(2, "Name must be at least 2 characters.")
+      .max(100, "Name must be at most 100 characters."),
+    email: z.string().min(1, "Email is required.").email("Enter a valid email."),
+    password: z.string().min(8, "Password must be at least 8 characters."),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -41,19 +43,30 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>;
 
 function SignUp() {
+  const { register } = useAuth();
+  const navigate = useNavigate();
+  const [formError, setFormError] = useState<string | null>(null);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: "",
+      name: "",
+      email: "",
       password: "",
       confirmPassword: "",
     },
   });
 
   async function onSubmit(data: FormValues) {
-    // simulate delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    console.log(data);
+    setFormError(null);
+    try {
+      await register(data.name, data.email, data.password);
+      navigate("/", { replace: true });
+    } catch (err) {
+      setFormError(
+        err instanceof ApiError ? err.message : "Unable to create account.",
+      );
+    }
   }
 
   return (
@@ -75,16 +88,36 @@ function SignUp() {
           <form id="signup-form" onSubmit={form.handleSubmit(onSubmit)}>
             <FieldGroup>
               <Controller
-                name="username"
+                name="name"
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="signup-username">Username</FieldLabel>
+                    <FieldLabel htmlFor="signup-name">Name</FieldLabel>
                     <Input
                       {...field}
-                      id="signup-username"
+                      id="signup-name"
                       type="text"
-                      autoComplete="username"
+                      autoComplete="name"
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                name="email"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="signup-email">Email</FieldLabel>
+                    <Input
+                      {...field}
+                      id="signup-email"
+                      type="email"
+                      autoComplete="email"
                       aria-invalid={fieldState.invalid}
                     />
                     {fieldState.invalid && (
@@ -135,6 +168,12 @@ function SignUp() {
                   </Field>
                 )}
               />
+
+              {formError && (
+                <p className="text-sm text-destructive" role="alert">
+                  {formError}
+                </p>
+              )}
             </FieldGroup>
           </form>
         </CardContent>

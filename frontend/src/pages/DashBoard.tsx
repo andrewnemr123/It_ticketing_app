@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faChartPie,
@@ -9,6 +10,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import type { IconProp } from "@fortawesome/fontawesome-svg-core";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/lib/auth";
 
 type DashBoardItemProps = {
   icon: IconProp;
@@ -27,27 +29,42 @@ export function DashBoardItem({ icon, name, to }: DashBoardItemProps) {
   return to ? <Link to={to}>{content}</Link> : content;
 }
 
+function DashBoardShell({ children }: { children: React.ReactNode }) {
+  const { user, logout } = useAuth();
+  return (
+    <div className="relative flex w-screen h-screen items-center justify-center gap-6">
+      <div className="absolute top-4 right-4 flex items-center gap-3">
+        {user && (
+          <span className="text-sm text-muted-foreground">
+            {user.name} · {user.role}
+          </span>
+        )}
+        <Button variant="ghost" onClick={logout}>
+          Log out
+        </Button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function AdminDashBoard() {
   return (
-    <div className="flex w-screen h-screen items-center justify-center gap-6">
-      <DashBoardItem
-        icon={faTicket}
-        name="Manage Tickets"
-        to="/admin/tickets"
-      />
+    <DashBoardShell>
+      <DashBoardItem icon={faTicket} name="Manage Tickets" to="/admin/tickets" />
       <DashBoardItem icon={faUsersGear} name="Manage Users" to="/admin/users" />
       <DashBoardItem icon={faChartPie} name="Reports" />
       <DashBoardItem icon={faGear} name="Settings" />
-    </div>
+    </DashBoardShell>
   );
 }
 
 export function UserDashBoard() {
   return (
-    <div className="flex w-screen h-screen items-center justify-center gap-6">
+    <DashBoardShell>
       <DashBoardItem icon={faPlus} name="Create Ticket" to="/tickets/create" />
       <DashBoardItem icon={faTicket} name="My Tickets" to="/tickets" />
       <DashBoardItem icon={faGear} name="Settings" />
-    </div>
+    </DashBoardShell>
   );
 }

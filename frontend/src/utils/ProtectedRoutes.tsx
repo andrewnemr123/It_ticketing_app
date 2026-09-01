@@ -1,22 +1,30 @@
 import { Outlet, Navigate } from "react-router-dom";
+import { Spinner } from "@/components/ui/spinner";
+import { useAuth } from "@/lib/auth";
+
+function LoadingScreen() {
+  return (
+    <div className="flex h-screen w-screen items-center justify-center">
+      <Spinner className="size-6" />
+    </div>
+  );
+}
 
 export function ProtectedUserRoutes() {
-  const user = true;
+  const { user, isLoading } = useAuth();
 
-  return user ? <Outlet /> : <Navigate to="/login" replace />;
+  if (isLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+
+  return <Outlet />;
 }
 
 export function ProtectedAdminRoutes() {
-  const user = true;
-  const isAdmin = true;
+  const { user, isLoading } = useAuth();
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!isAdmin) {
-    return <Navigate to="/unauthorized" replace />;
-  }
+  if (isLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "ADMIN") return <Navigate to="/unauthorized" replace />;
 
   return <Outlet />;
 }

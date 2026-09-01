@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -27,39 +30,53 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { api, ApiError } from "@/lib/api";
+import {
+  TICKET_CATEGORIES,
+  TICKET_PRIORITIES,
+  type TicketResponse,
+} from "@/lib/types";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  category: z.string().min(1, "Category is required"),
+  category: z.enum(TICKET_CATEGORIES, "Category is required"),
+  priority: z.enum(TICKET_PRIORITIES),
   description: z.string().min(1, "Description is required"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-const categories = [
-  { label: "Choose category", value: "" },
-  { label: "Hardware", value: "hardware" },
-  { label: "Software", value: "software" },
-  { label: "Network", value: "network" },
-  { label: "Permissions", value: "permissions" },
-  { label: "Security", value: "security" },
-  { label: "Email", value: "email" },
-];
-
 function CreateTicket() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [formError, setFormError] = useState<string | null>(null);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
-      category: "",
+      category: undefined,
+      priority: "Medium",
       description: "",
     },
   });
 
   async function onSubmit(data: FormValues) {
-    // simulate delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    console.log(data);
+    setFormError(null);
+    try {
+      await api.post<TicketResponse>("/tickets", {
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        priority: data.priority,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["tickets"] });
+      navigate("/tickets", { replace: true });
+    } catch (err) {
+      setFormError(
+        err instanceof ApiError ? err.message : "Unable to create ticket.",
+      );
+    }
   }
 
   return (
@@ -101,20 +118,53 @@ function CreateTicket() {
                     <FieldLabel htmlFor="create-ticket-category">
                       Category
                     </FieldLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
                       <SelectTrigger
                         id="create-ticket-category"
                         aria-invalid={fieldState.invalid}
                       >
-                        <SelectValue placeholder={categories[0].label} />
+                        <SelectValue placeholder="Choose category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem
-                            key={category.value}
-                            value={category.value}
-                          >
-                            {category.label}
+                        {TICKET_CATEGORIES.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                name="priority"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="create-ticket-priority">
+                      Priority
+                    </FieldLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger
+                        id="create-ticket-priority"
+                        aria-invalid={fieldState.invalid}
+                      >
+                        <SelectValue placeholder="Choose priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TICKET_PRIORITIES.map((priority) => (
+                          <SelectItem key={priority} value={priority}>
+                            {priority}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -146,6 +196,12 @@ function CreateTicket() {
                   </Field>
                 )}
               />
+
+              {formError && (
+                <p className="text-sm text-destructive" role="alert">
+                  {formError}
+                </p>
+              )}
             </FieldGroup>
           </form>
         </CardContent>

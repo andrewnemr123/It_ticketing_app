@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -21,28 +22,39 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { useAuth } from "@/lib/auth";
+import { ApiError } from "@/lib/api";
 
 const formSchema = z.object({
-  username: z.string().min(1, "Username is required."),
+  email: z.string().min(1, "Email is required.").email("Enter a valid email."),
   password: z.string().min(1, "Password is required."),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 function Login() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [formError, setFormError] = useState<string | null>(null);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
 
   async function onSubmit(data: FormValues) {
-    // simulate delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    console.log(data);
+    setFormError(null);
+    try {
+      const user = await login(data.email, data.password);
+      navigate(user.role === "ADMIN" ? "/admin" : "/", { replace: true });
+    } catch (err) {
+      setFormError(
+        err instanceof ApiError ? err.message : "Unable to log in. Try again.",
+      );
+    }
   }
 
   return (
@@ -64,16 +76,16 @@ function Login() {
           <form id="login-form" onSubmit={form.handleSubmit(onSubmit)}>
             <FieldGroup>
               <Controller
-                name="username"
+                name="email"
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="login-username">Username</FieldLabel>
+                    <FieldLabel htmlFor="login-email">Email</FieldLabel>
                     <Input
                       {...field}
-                      id="login-username"
-                      type="text"
-                      autoComplete="username"
+                      id="login-email"
+                      type="email"
+                      autoComplete="email"
                       aria-invalid={fieldState.invalid}
                     />
                     {fieldState.invalid && (
@@ -102,6 +114,12 @@ function Login() {
                   </Field>
                 )}
               />
+
+              {formError && (
+                <p className="text-sm text-destructive" role="alert">
+                  {formError}
+                </p>
+              )}
             </FieldGroup>
           </form>
         </CardContent>

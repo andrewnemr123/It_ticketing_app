@@ -20,7 +20,7 @@ function formatDate(value: string) {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString();
 }
 
-export default function ManageTickets() {
+export default function MyTickets() {
   const { logout } = useAuth();
 
   const { data, isLoading, error } = useQuery({
@@ -31,11 +31,17 @@ export default function ManageTickets() {
   const tickets: Ticket[] = data?.tickets ?? [];
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
+    <div className="mx-auto max-w-5xl p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Manage Tickets</h1>
+        <h1 className="text-xl font-semibold">My Tickets</h1>
         <div className="flex gap-2">
-          <Link to="/admin" className={buttonVariants({ variant: "outline" })}>
+          <Link
+            to="/tickets/create"
+            className={buttonVariants({ variant: "default" })}
+          >
+            Create Ticket
+          </Link>
+          <Link to="/" className={buttonVariants({ variant: "outline" })}>
             Back
           </Link>
           <Button variant="ghost" onClick={logout}>
@@ -65,7 +71,6 @@ export default function ManageTickets() {
               <TableHead>Category</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created By</TableHead>
               <TableHead>Assigned To</TableHead>
               <TableHead>Created Date</TableHead>
             </TableRow>
@@ -78,15 +83,14 @@ export default function ManageTickets() {
                 <TableCell>{ticket.category}</TableCell>
                 <TableCell>{ticket.priority}</TableCell>
                 <TableCell>{ticket.status}</TableCell>
-                <TableCell>{ticket.creator_name}</TableCell>
                 <TableCell>{ticket.assignee_name ?? "—"}</TableCell>
                 <TableCell>{formatDate(ticket.created_at)}</TableCell>
               </TableRow>
             ))}
             {tickets.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-muted-foreground">
-                  No tickets yet.
+                <TableCell colSpan={7} className="text-muted-foreground">
+                  You have not created any tickets yet.
                 </TableCell>
               </TableRow>
             )}
