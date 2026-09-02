@@ -1,7 +1,7 @@
 // Centralised API client. Every request to the backend goes through here so the
 // base URL, the JWT header and error handling live in one place.
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const TOKEN_KEY = "it_ticketing_token";
 
@@ -53,7 +53,7 @@ async function request<T>(
 
   let res: Response;
   try {
-    res = await fetch(`${API_URL}/api${path}`, { method, headers, body: payload });
+    res = await fetch(`${API_URL}${path}`, { method, headers, body: payload });
   } catch {
     throw new ApiError(0, "Cannot reach the server. Is the backend running?");
   }
