@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: MySQL-Ticketing
+    type: mysql
+    access: proxy
+    url: mysql:3306
+    user: docker
+    database: it_ticketing
+    isDefault: true
+    editable: true
+    secureJsonData:
+      password: docker
+    jsonData:
+      sslmode: disable
+
