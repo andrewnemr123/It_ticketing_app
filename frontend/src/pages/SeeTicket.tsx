@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import type { Ticket, TicketResponse } from "@/lib/types";
+import type { TicketResponse } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -75,7 +75,7 @@ export default function SeeTicket() {
     enabled: !!ticket_id,
   });
 
-  const ticket: Ticket = data?.ticket;
+  const ticket = data?.ticket;
 
   if (!ticket_id) {
     return (
