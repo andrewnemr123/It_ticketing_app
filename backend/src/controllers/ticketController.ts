@@ -269,11 +269,9 @@ export const updateTicket = asyncHandler(async (req: Request, res: Response) => 
           [parsedAssignee]
         );
         if (rows.length === 0) throw new ApiError(404, "Assignee not found");
-        if (rows[0].role !== "ADMIN") {
-          throw new ApiError(400, "Tickets can only be assigned to an ADMIN");
-        }
         newAssigneeName = rows[0].name as string;
       }
+
 
       if (ticket.assigned_to_id !== parsedAssignee) {
         await addEvent({
@@ -381,11 +379,9 @@ export const assignTicket = asyncHandler(async (req: Request, res: Response) => 
       [assigneeId]
     );
     if (rows.length === 0) throw new ApiError(404, "Assignee not found");
-    if (rows[0].role !== "ADMIN") {
-      throw new ApiError(400, "Tickets can only be assigned to an ADMIN");
-    }
     newName = rows[0].name as string;
   }
+
 
   if (ticket.assigned_to_id !== assigneeId) {
     await pool.execute("UPDATE ticket SET assigned_to_id = ? WHERE id = ?", [

@@ -295,6 +295,39 @@ describe("Ticket Controller & CRUD API Tests", () => {
       expect(res.body.ticket.status).toBe("In Progress");
       expect(res.body.ticket.assigned_to_id).toBe(1);
     });
+
+    it("should allow admin to assign a ticket to an EMPLOYEE (any user)", async () => {
+      const employeeAssignedTicket = {
+        ...mockTicket,
+        assigned_to_id: 2,
+        assignee_name: "Sarah Jenkins",
+      };
+
+      const mockEmployeeUser = { id: 2, name: "Sarah Jenkins", role: "EMPLOYEE" };
+
+      vi.spyOn(pool, "execute")
+        .mockResolvedValueOnce([[mockTicket], []] as any) // getTicketById
+        .mockResolvedValueOnce([[mockEmployeeUser], []] as any) // check assignee exists
+        .mockResolvedValueOnce([{ insertId: 11 }, []] as any) // ASSIGNMENT_CHANGE event
+        .mockResolvedValueOnce([{ affectedRows: 1 }, []] as any) // UPDATE ticket
+        .mockResolvedValueOnce([[employeeAssignedTicket], []] as any); // getTicketById after update
+
+      const res = await request(app)
+        .put("/api/tickets/1")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          title: "VPN connection issue",
+          description: "Cannot connect to company VPN",
+          category: "Network",
+          priority: "High",
+          assigned_to_id: 2,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe("Ticket updated successfully");
+      expect(res.body.ticket.assigned_to_id).toBe(2);
+    });
   });
 });
+
 

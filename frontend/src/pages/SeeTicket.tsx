@@ -116,9 +116,8 @@ export default function SeeTicket() {
     enabled: Boolean(user && user.role === "ADMIN"),
   });
 
-  const availableAdmins = (usersData?.users ?? []).filter(
-    (u) => u.role === "ADMIN"
-  );
+  const allUsers = usersData?.users ?? [];
+
 
   // Edit state
   const [isEditing, setIsEditing] = useState(false);
@@ -373,7 +372,7 @@ export default function SeeTicket() {
                   </Field>
 
                   <Field>
-                    <FieldLabel htmlFor="edit-assignee">Assign Technician (Admin)</FieldLabel>
+                    <FieldLabel htmlFor="edit-assignee">Assign Ticket To (Admin)</FieldLabel>
                     <select
                       id="edit-assignee"
                       value={assignedToId}
@@ -383,13 +382,14 @@ export default function SeeTicket() {
                       <option value="" className="bg-popover text-popover-foreground">
                         -- Unassigned --
                       </option>
-                      {availableAdmins.map((admin) => (
-                        <option key={admin.id} value={String(admin.id)} className="bg-popover text-popover-foreground">
-                          {admin.name} ({admin.email})
+                      {allUsers.map((u) => (
+                        <option key={u.id} value={String(u.id)} className="bg-popover text-popover-foreground">
+                          {u.name} ({u.email}) · {u.role}
                         </option>
                       ))}
                     </select>
                   </Field>
+
                 </div>
               )}
 
