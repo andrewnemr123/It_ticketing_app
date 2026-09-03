@@ -32,8 +32,7 @@ export default function MyTickets() {
   const tickets: Ticket[] = data?.tickets ?? [];
 
   const filteredTickets = tickets.filter(
-    (ticket) => ticket.creator_name === user.name,
-    (ticket) => user && ticket.creator_name === user.name,
+    (ticket: Ticket) => Boolean(user && ticket.creator_name === user.name),
   );
 
 
