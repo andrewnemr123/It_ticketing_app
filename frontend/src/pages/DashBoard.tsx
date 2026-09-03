@@ -94,10 +94,6 @@ export function AdminDashBoard() {
       <DashBoardItem
         icon={faChartPie}
         name="Reports"
-        toExternal={
-          import.meta.env.VITE_GRAFANA_URL ||
-          `${window.location.protocol}//${window.location.hostname}:3000`
-        }
         toExternal={`http://${window.location.hostname}:3000`}
       />
 
