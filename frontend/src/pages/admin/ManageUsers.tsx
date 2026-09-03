@@ -55,16 +55,45 @@ export default function ManageUsers() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.del(`/users/${id}`),
+    onSuccess: () => {
+      setMutationError(null);
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (err) => {
+      setMutationError(
+        err instanceof ApiError ? err.message : "Failed to delete user",
+      );
+    },
+  });
+
+  const handleDelete = (user: User) => {
+    if (user.id === current?.id) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${user.name}?`,
+    );
+
+    if (!confirmed) return;
+
+    deleteMutation.mutate(user.id);
+  };
+
   const users: User[] = data?.users ?? [];
 
   return (
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Manage Users</h1>
+
         <div className="flex gap-2">
           <Link to="/admin" className={buttonVariants({ variant: "outline" })}>
             Back
           </Link>
+
           <Button variant="ghost" onClick={logout}>
             Log out
           </Button>
@@ -97,36 +126,67 @@ export default function ManageUsers() {
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Created At</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
-            {users.map((u) => (
-              <TableRow key={u.id}>
-                <TableCell>{u.name}</TableCell>
-                <TableCell>{u.email}</TableCell>
-                <TableCell>
-                  <Select
-                    value={u.role}
-                    onValueChange={(role) =>
-                      roleMutation.mutate({ id: u.id, role: role as Role })
-                    }
-                    disabled={u.id === current?.id}
-                  >
-                    <SelectTrigger size="sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROLES.map((r) => (
-                        <SelectItem key={r} value={r}>
-                          {r}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>{formatDate(u.created_at)}</TableCell>
-              </TableRow>
-            ))}
+            {users.map((u) => {
+              const isCurrentUser = u.id === current?.id;
+              const isDeleting =
+                deleteMutation.isPending &&
+                deleteMutation.variables === u.id;
+
+              return (
+                <TableRow key={u.id}>
+                  <TableCell>{u.name}</TableCell>
+
+                  <TableCell>{u.email}</TableCell>
+
+                  <TableCell>
+                    <Select
+                      value={u.role}
+                      onValueChange={(role) =>
+                        roleMutation.mutate({
+                          id: u.id,
+                          role: role as Role,
+                        })
+                      }
+                      disabled={
+                        isCurrentUser ||
+                        roleMutation.isPending ||
+                        deleteMutation.isPending
+                      }
+                    >
+                      <SelectTrigger size="sm">
+                        <SelectValue />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        {ROLES.map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {r}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+
+                  <TableCell>{formatDate(u.created_at)}</TableCell>
+
+                  <TableCell className="text-right">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(u)}
+                      disabled={isCurrentUser || deleteMutation.isPending}
+                    >
+                      {isDeleting ? "Deleting..." : "Delete"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       )}

@@ -195,12 +195,12 @@ CREATE TABLE IF NOT EXISTS ticket (
         'Resolved',
         'Closed'
     ) NOT NULL DEFAULT 'New',
-    creator_id     INT NOT NULL,
+    creator_id     INT NULL,
     assigned_to_id INT NULL,
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_ticket_creator  FOREIGN KEY (creator_id)     REFERENCES user(id),
+    CONSTRAINT fk_ticket_creator  FOREIGN KEY (creator_id)     REFERENCES user(id) ON DELETE SET NULL,
     CONSTRAINT fk_ticket_assignee FOREIGN KEY (assigned_to_id) REFERENCES user(id) ON DELETE SET NULL
 );
 

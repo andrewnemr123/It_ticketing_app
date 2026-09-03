@@ -36,7 +36,7 @@ const TICKET_SELECT = `
     creator.name AS creator_name,
     assignee.name AS assignee_name
   FROM ticket t
-  JOIN \`user\` creator ON creator.id = t.creator_id
+  LEFT JOIN \`user\` creator ON creator.id = t.creator_id
   LEFT JOIN \`user\` assignee ON assignee.id = t.assigned_to_id
 `;
 

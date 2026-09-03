@@ -4,6 +4,7 @@ import {
   getUser,
   createUser,
   updateUserRole,
+  deleteUser,
 } from "../controllers/userController";
 import { authenticateToken } from "../middleware/authMiddleware";
 import { authorizeRoles } from "../middleware/roleMiddleware";
@@ -16,6 +17,7 @@ router.use(authenticateToken, authorizeRoles("ADMIN"));
 router.get("/", listUsers);
 router.post("/", createUser);
 router.get("/:id", getUser);
+router.delete("/:id", deleteUser);
 router.put("/:id/role", updateUserRole);
 
 export default router;

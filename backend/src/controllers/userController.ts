@@ -71,6 +71,34 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
+// DELETE /api/users/:id   (ADMIN)
+// ---------------------------------------------------------------------------
+export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new ApiError(400, "Invalid id");
+  }
+
+  // Prevent an admin from deleting their own account.
+  if (id === req.user!.userId) {
+    throw new ApiError(400, "You cannot delete your own account");
+  }
+
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    "SELECT id FROM `user` WHERE id = ?",
+    [id]
+  );
+
+  if (rows.length === 0) {
+    throw new ApiError(404, "User not found");
+  }
+
+  await pool.execute("DELETE FROM `user` WHERE id = ?", [id]);
+
+  res.json({ message: "User deleted" });
+});
+
+// ---------------------------------------------------------------------------
 // PUT /api/users/:id/role   (ADMIN)
 // ---------------------------------------------------------------------------
 export const updateUserRole = asyncHandler(
