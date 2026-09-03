@@ -40,7 +40,6 @@ docker compose exec backend npm run seed
 - **Frontend App**: [http://localhost:5173](http://localhost:5173)
 - **Backend API**: [http://localhost:5001/api](http://localhost:5001/api)
 - **API Health Check**: [http://localhost:5001/api/health](http://localhost:5001/api/health)
-- **Grafana Dashboards**: [http://localhost:3000](http://localhost:3000) (Login: `admin` / `admin`)
 
 
 ---
