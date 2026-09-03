@@ -200,7 +200,55 @@ export const createTicket = asyncHandler(async (req: Request, res: Response) => 
 });
 
 // ---------------------------------------------------------------------------
+// PUT /api/tickets/:id   (ADMIN or TICKET CREATOR)
+
+// ---------------------------------------------------------------------------
+export const updateTicket = asyncHandler(async (req: Request, res: Response) => {
+  const id = parseId(req.params.id);
+  const ticket = await getTicketById(id);
+  if (!ticket) throw new ApiError(404, "Ticket not found");
+  assertCanAccess(req.user!, ticket);
+
+  const title = String(req.body.title || "").trim();
+  const description = String(req.body.description || "").trim();
+  const category = String(req.body.category || "").trim();
+  const priority = String(req.body.priority || "").trim();
+
+  if (!title || !description) {
+    throw new ApiError(400, "Title and description are required");
+  }
+  if (category && !TICKET_CATEGORIES.includes(category as never)) {
+    throw new ApiError(400, "Invalid category");
+  }
+  if (priority && !TICKET_PRIORITIES.includes(priority as never)) {
+    throw new ApiError(400, "Invalid priority");
+  }
+
+  const finalCategory = category || ticket.category;
+  const finalPriority = priority || ticket.priority;
+
+  if (ticket.priority !== finalPriority) {
+    await addEvent({
+      ticketId: id,
+      userId: req.user!.userId,
+      eventType: "PRIORITY_CHANGE",
+      oldValue: ticket.priority,
+      newValue: finalPriority,
+    });
+  }
+
+  await pool.execute(
+    "UPDATE ticket SET title = ?, description = ?, category = ?, priority = ? WHERE id = ?",
+    [title, description, finalCategory, finalPriority, id]
+  );
+
+  const updated = await getTicketById(id);
+  res.json({ message: "Ticket updated successfully", ticket: updated });
+});
+
+// ---------------------------------------------------------------------------
 // PUT /api/tickets/:id/status   (ADMIN)
+
 // ---------------------------------------------------------------------------
 export const updateStatus = asyncHandler(async (req: Request, res: Response) => {
   const id = parseId(req.params.id);
