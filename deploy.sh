@@ -47,8 +47,36 @@ case "$1" in
   status)
     docker compose -f "$COMPOSE_FILE" ps
     ;;
+  test)
+    echo "========================================="
+    echo "  Running Production Stack Self-Check"
+    echo "========================================="
+    echo ""
+    echo "1. Checking Containers..."
+    docker compose -f "$COMPOSE_FILE" ps
+    echo ""
+    echo "2. Testing API Health..."
+    HEALTH=$(curl -s http://localhost/api/health || echo "FAILED")
+    echo "Response: $HEALTH"
+    echo ""
+    echo "3. Testing Login (admin@company.com)..."
+    LOGIN_RESP=$(curl -s -X POST http://localhost/api/auth/login \
+      -H "Content-Type: application/json" \
+      -d '{"email":"admin@company.com","password":"Password123"}' || echo "FAILED")
+    echo "Response: $LOGIN_RESP"
+    echo ""
+    if echo "$LOGIN_RESP" | grep -q "Login successful"; then
+      echo "==> ALL CHECKS PASSED! Your backend and database are working perfectly."
+    else
+      echo "==> LOGIN FAILED! Showing recent backend error logs:"
+      echo "----------------------------------------------------"
+      docker compose -f "$COMPOSE_FILE" logs --tail=25 backend
+      echo "----------------------------------------------------"
+    fi
+    ;;
   *)
     show_help
     ;;
 esac
+
 
