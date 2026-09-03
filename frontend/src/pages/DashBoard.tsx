@@ -82,6 +82,12 @@ export function AdminDashBoard() {
   return (
     <DashBoardShell>
       <DashBoardItem
+        icon={faPlus}
+        name="Create Ticket"
+        toInternal="/tickets/create"
+      />
+      <DashBoardItem icon={faTicket} name="My Tickets" toInternal="/tickets" />
+      <DashBoardItem
         icon={faTicket}
         name="Manage Tickets"
         toInternal="/admin/tickets"
@@ -96,8 +102,6 @@ export function AdminDashBoard() {
         name="Reports"
         toExternal={`http://${window.location.hostname}:3000`}
       />
-
-
     </DashBoardShell>
   );
 }

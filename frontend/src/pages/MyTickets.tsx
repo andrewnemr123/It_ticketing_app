@@ -22,7 +22,7 @@ function formatDate(value: string) {
 
 export default function MyTickets() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["tickets"],
@@ -30,6 +30,10 @@ export default function MyTickets() {
   });
 
   const tickets: Ticket[] = data?.tickets ?? [];
+
+  const filteredTickets = tickets.filter(
+    (ticket) => ticket.creator_name === user.name,
+  );
 
   return (
     <div className="mx-auto max-w-5xl p-6">
@@ -42,9 +46,9 @@ export default function MyTickets() {
           >
             Create Ticket
           </Link>
-          <Link to="/" className={buttonVariants({ variant: "outline" })}>
+          <Button onClick={() => navigate(-1)} variant="outline">
             Back
-          </Link>
+          </Button>
           <Button variant="ghost" onClick={logout}>
             Log out
           </Button>
@@ -77,7 +81,7 @@ export default function MyTickets() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tickets.map((ticket) => (
+            {filteredTickets.map((ticket) => (
               <TableRow
                 key={ticket.id}
                 onClick={() => navigate(`/tickets/${ticket.id}`)}
@@ -92,7 +96,7 @@ export default function MyTickets() {
                 <TableCell>{formatDate(ticket.created_at)}</TableCell>
               </TableRow>
             ))}
-            {tickets.length === 0 && (
+            {filteredTickets.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="text-muted-foreground">
                   You have not created any tickets yet.

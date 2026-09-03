@@ -1,4 +1,4 @@
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -12,7 +12,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { TicketResponse } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Calendar,
@@ -116,10 +116,10 @@ export default function SeeTicket() {
           <p className="text-lg font-medium text-destructive">
             Failed to load ticket
           </p>
-          <Link to="/" className={buttonVariants({ variant: "outline" })}>
+          <Button onClick={() => navigate(-1)} variant="outline">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to tickets
-          </Link>
+          </Button>
         </div>
       </div>
     );
