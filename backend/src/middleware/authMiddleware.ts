@@ -34,6 +34,7 @@ export function authenticateToken(
     const decoded = jwt.verify(token, secret) as JwtPayload;
 
 
+
     req.user = {
       userId: decoded.userId,
       email: decoded.email,
