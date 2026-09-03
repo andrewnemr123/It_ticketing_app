@@ -33,7 +33,9 @@ export default function MyTickets() {
 
   const filteredTickets = tickets.filter(
     (ticket) => ticket.creator_name === user.name,
+    (ticket) => user && ticket.creator_name === user.name,
   );
+
 
   return (
     <div className="mx-auto max-w-5xl p-6">
