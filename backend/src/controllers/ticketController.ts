@@ -200,7 +200,105 @@ export const createTicket = asyncHandler(async (req: Request, res: Response) => 
 });
 
 // ---------------------------------------------------------------------------
+// PUT /api/tickets/:id   (ADMIN or TICKET CREATOR)
+
+// ---------------------------------------------------------------------------
+export const updateTicket = asyncHandler(async (req: Request, res: Response) => {
+  const id = parseId(req.params.id);
+  const ticket = await getTicketById(id);
+  if (!ticket) throw new ApiError(404, "Ticket not found");
+  assertCanAccess(req.user!, ticket);
+
+  const title = String(req.body.title || "").trim();
+  const description = String(req.body.description || "").trim();
+  const category = String(req.body.category || "").trim();
+  const priority = String(req.body.priority || "").trim();
+
+  if (!title || !description) {
+    throw new ApiError(400, "Title and description are required");
+  }
+  if (category && !TICKET_CATEGORIES.includes(category as never)) {
+    throw new ApiError(400, "Invalid category");
+  }
+  if (priority && !TICKET_PRIORITIES.includes(priority as never)) {
+    throw new ApiError(400, "Invalid priority");
+  }
+
+  const finalCategory = category || ticket.category;
+  const finalPriority = priority || ticket.priority;
+  let finalStatus = ticket.status;
+  let finalAssigneeId = ticket.assigned_to_id;
+
+  if (ticket.priority !== finalPriority) {
+    await addEvent({
+      ticketId: id,
+      userId: req.user!.userId,
+      eventType: "PRIORITY_CHANGE",
+      oldValue: ticket.priority,
+      newValue: finalPriority,
+    });
+  }
+
+  // Admin-only fields: Status & Assignment
+  if (req.user!.role === "ADMIN") {
+    // Status update
+    const rawStatus = String(req.body.status || "").trim();
+    if (rawStatus && TICKET_STATUSES.includes(rawStatus as never)) {
+      if (ticket.status !== rawStatus) {
+        await addEvent({
+          ticketId: id,
+          userId: req.user!.userId,
+          eventType: "STATUS_CHANGE",
+          oldValue: ticket.status,
+          newValue: rawStatus,
+        });
+        finalStatus = rawStatus;
+      }
+    }
+
+    // Assignment update
+    const rawAssignee = req.body.assigned_to_id;
+    if (rawAssignee !== undefined) {
+      const parsedAssignee =
+        rawAssignee === null || rawAssignee === "" ? null : Number(rawAssignee);
+
+      let newAssigneeName: string | null = null;
+      if (parsedAssignee !== null) {
+        const [rows] = await pool.execute<RowDataPacket[]>(
+          "SELECT id, name, role FROM `user` WHERE id = ?",
+          [parsedAssignee]
+        );
+        if (rows.length === 0) throw new ApiError(404, "Assignee not found");
+        newAssigneeName = rows[0].name as string;
+      }
+
+
+      if (ticket.assigned_to_id !== parsedAssignee) {
+        await addEvent({
+          ticketId: id,
+          userId: req.user!.userId,
+          eventType: "ASSIGNMENT_CHANGE",
+          oldValue: ticket.assignee_name ?? "Unassigned",
+          newValue: newAssigneeName ?? "Unassigned",
+        });
+        finalAssigneeId = parsedAssignee;
+      }
+    }
+  }
+
+  await pool.execute(
+    "UPDATE ticket SET title = ?, description = ?, category = ?, priority = ?, status = ?, assigned_to_id = ? WHERE id = ?",
+    [title, description, finalCategory, finalPriority, finalStatus, finalAssigneeId, id]
+  );
+
+  const updated = await getTicketById(id);
+  res.json({ message: "Ticket updated successfully", ticket: updated });
+});
+
+
+// ---------------------------------------------------------------------------
 // PUT /api/tickets/:id/status   (ADMIN)
+
 // ---------------------------------------------------------------------------
 export const updateStatus = asyncHandler(async (req: Request, res: Response) => {
   const id = parseId(req.params.id);
@@ -281,11 +379,9 @@ export const assignTicket = asyncHandler(async (req: Request, res: Response) => 
       [assigneeId]
     );
     if (rows.length === 0) throw new ApiError(404, "Assignee not found");
-    if (rows[0].role !== "ADMIN") {
-      throw new ApiError(400, "Tickets can only be assigned to an ADMIN");
-    }
     newName = rows[0].name as string;
   }
+
 
   if (ticket.assigned_to_id !== assigneeId) {
     await pool.execute("UPDATE ticket SET assigned_to_id = ? WHERE id = ?", [

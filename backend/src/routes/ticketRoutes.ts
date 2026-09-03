@@ -1,8 +1,10 @@
 import { Router } from "express";
 import {
   listTickets,
+
   getTicket,
   createTicket,
+  updateTicket,
   updateStatus,
   updatePriority,
   assignTicket,
@@ -24,6 +26,8 @@ router.use(authenticateToken);
 router.get("/", listTickets);
 router.post("/", createTicket);
 router.get("/:id", getTicket);
+router.put("/:id", updateTicket);
+
 
 router.get("/:id/events", listEvents);
 router.post("/:id/comments", addComment);

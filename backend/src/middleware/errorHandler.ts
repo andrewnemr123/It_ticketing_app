@@ -18,6 +18,12 @@ export function errorHandler(
     return;
   }
 
+  if (err instanceof SyntaxError && "status" in err && (err as { status: number }).status === 400) {
+    res.status(400).json({ message: "Malformed JSON payload in request body" });
+    return;
+  }
+
+
   if (err instanceof multer.MulterError) {
     const message =
       err.code === "LIMIT_FILE_SIZE"
