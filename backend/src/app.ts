@@ -30,9 +30,11 @@ app.use(
       }
       return callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
+    origin: true,
     credentials: true,
   })
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
