@@ -41,7 +41,26 @@ services:
     depends_on:
       - backend
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: it-ticketing-grafana-prod
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      mysql:
+        condition: service_healthy
+
 volumes:
   mysql_data:
   backend_uploads:
+  grafana_data:
+
 
