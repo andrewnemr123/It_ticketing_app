@@ -18,6 +18,157 @@ CREATE TABLE IF NOT EXISTS user (
     created_at    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ===========================================================================
+-- USER AUDIT
+-- ===========================================================================
+--
+-- Records INSERT, UPDATE and DELETE operations on the user table.
+--
+-- password_hash is intentionally NOT stored in the audit table.
+--
+-- SELECT operations cannot be captured with a trigger. If SELECT auditing
+-- is required, configure MySQL's general query log separately.
+-- ===========================================================================
+CREATE TABLE IF NOT EXISTS user_audit (
+    audit_id       BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id        INT NULL,
+
+    action         ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
+    changed_at     TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+    db_user        VARCHAR(255) NOT NULL,
+    db_host        VARCHAR(255) NULL,
+
+    -- Values before the change
+    old_name       VARCHAR(100) NULL,
+    old_email      VARCHAR(255) NULL,
+    old_role       ENUM('EMPLOYEE', 'ADMIN') NULL,
+
+    -- Values after the change
+    new_name       VARCHAR(100) NULL,
+    new_email      VARCHAR(255) NULL,
+    new_role       ENUM('EMPLOYEE', 'ADMIN') NULL,
+
+    PRIMARY KEY (audit_id),
+
+    INDEX idx_user_audit_user_id (user_id),
+    INDEX idx_user_audit_changed_at (changed_at),
+    INDEX idx_user_audit_action (action)
+);
+
+-- ---------------------------------------------------------------------------
+-- INSERT AUDIT TRIGGER
+-- ---------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS user_audit_insert;
+
+DELIMITER //
+
+CREATE TRIGGER user_audit_insert
+AFTER INSERT ON user
+FOR EACH ROW
+BEGIN
+    INSERT INTO user_audit (
+        user_id,
+        action,
+        db_user,
+        db_host,
+        new_name,
+        new_email,
+        new_role
+    )
+    VALUES (
+        NEW.id,
+        'INSERT',
+        CURRENT_USER(),
+        SUBSTRING_INDEX(USER(), '@', -1),
+        NEW.name,
+        NEW.email,
+        NEW.role
+    );
+END//
+
+DELIMITER ;
+
+
+-- ---------------------------------------------------------------------------
+-- UPDATE AUDIT TRIGGER
+-- ---------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS user_audit_update;
+
+DELIMITER //
+
+CREATE TRIGGER user_audit_update
+AFTER UPDATE ON user
+FOR EACH ROW
+BEGIN
+    INSERT INTO user_audit (
+        user_id,
+        action,
+        db_user,
+        db_host,
+
+        old_name,
+        old_email,
+        old_role,
+
+        new_name,
+        new_email,
+        new_role
+    )
+    VALUES (
+        NEW.id,
+        'UPDATE',
+        CURRENT_USER(),
+        SUBSTRING_INDEX(USER(), '@', -1),
+
+        OLD.name,
+        OLD.email,
+        OLD.role,
+
+        NEW.name,
+        NEW.email,
+        NEW.role
+    );
+END//
+
+DELIMITER ;
+
+
+-- ---------------------------------------------------------------------------
+-- DELETE AUDIT TRIGGER
+-- ---------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS user_audit_delete;
+
+DELIMITER //
+
+CREATE TRIGGER user_audit_delete
+AFTER DELETE ON user
+FOR EACH ROW
+BEGIN
+    INSERT INTO user_audit (
+        user_id,
+        action,
+        db_user,
+        db_host,
+
+        old_name,
+        old_email,
+        old_role
+    )
+    VALUES (
+        OLD.id,
+        'DELETE',
+        CURRENT_USER(),
+        SUBSTRING_INDEX(USER(), '@', -1),
+
+        OLD.name,
+        OLD.email,
+        OLD.role
+    );
+END//
+
+DELIMITER ;
+
 -- ---------------------------------------------------------------------------
 -- tickets
 -- ---------------------------------------------------------------------------
