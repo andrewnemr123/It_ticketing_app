@@ -25,6 +25,7 @@ function signToken(payload: JwtPayload): string {
 }
 
 
+
 // ---------------------------------------------------------------------------
 // POST /api/auth/register  -> always creates an EMPLOYEE
 // ---------------------------------------------------------------------------
