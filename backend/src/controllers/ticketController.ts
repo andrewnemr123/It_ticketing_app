@@ -226,6 +226,8 @@ export const updateTicket = asyncHandler(async (req: Request, res: Response) => 
 
   const finalCategory = category || ticket.category;
   const finalPriority = priority || ticket.priority;
+  let finalStatus = ticket.status;
+  let finalAssigneeId = ticket.assigned_to_id;
 
   if (ticket.priority !== finalPriority) {
     await addEvent({
@@ -237,14 +239,64 @@ export const updateTicket = asyncHandler(async (req: Request, res: Response) => 
     });
   }
 
+  // Admin-only fields: Status & Assignment
+  if (req.user!.role === "ADMIN") {
+    // Status update
+    const rawStatus = String(req.body.status || "").trim();
+    if (rawStatus && TICKET_STATUSES.includes(rawStatus as never)) {
+      if (ticket.status !== rawStatus) {
+        await addEvent({
+          ticketId: id,
+          userId: req.user!.userId,
+          eventType: "STATUS_CHANGE",
+          oldValue: ticket.status,
+          newValue: rawStatus,
+        });
+        finalStatus = rawStatus;
+      }
+    }
+
+    // Assignment update
+    const rawAssignee = req.body.assigned_to_id;
+    if (rawAssignee !== undefined) {
+      const parsedAssignee =
+        rawAssignee === null || rawAssignee === "" ? null : Number(rawAssignee);
+
+      let newAssigneeName: string | null = null;
+      if (parsedAssignee !== null) {
+        const [rows] = await pool.execute<RowDataPacket[]>(
+          "SELECT id, name, role FROM `user` WHERE id = ?",
+          [parsedAssignee]
+        );
+        if (rows.length === 0) throw new ApiError(404, "Assignee not found");
+        if (rows[0].role !== "ADMIN") {
+          throw new ApiError(400, "Tickets can only be assigned to an ADMIN");
+        }
+        newAssigneeName = rows[0].name as string;
+      }
+
+      if (ticket.assigned_to_id !== parsedAssignee) {
+        await addEvent({
+          ticketId: id,
+          userId: req.user!.userId,
+          eventType: "ASSIGNMENT_CHANGE",
+          oldValue: ticket.assignee_name ?? "Unassigned",
+          newValue: newAssigneeName ?? "Unassigned",
+        });
+        finalAssigneeId = parsedAssignee;
+      }
+    }
+  }
+
   await pool.execute(
-    "UPDATE ticket SET title = ?, description = ?, category = ?, priority = ? WHERE id = ?",
-    [title, description, finalCategory, finalPriority, id]
+    "UPDATE ticket SET title = ?, description = ?, category = ?, priority = ?, status = ?, assigned_to_id = ? WHERE id = ?",
+    [title, description, finalCategory, finalPriority, finalStatus, finalAssigneeId, id]
   );
 
   const updated = await getTicketById(id);
   res.json({ message: "Ticket updated successfully", ticket: updated });
 });
+
 
 // ---------------------------------------------------------------------------
 // PUT /api/tickets/:id/status   (ADMIN)

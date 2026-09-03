@@ -17,7 +17,7 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import type { TicketResponse } from "@/lib/types";
+import type { TicketResponse, User as UserType } from "@/lib/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -44,6 +44,15 @@ const CATEGORIES = [
 ];
 
 const PRIORITIES = ["Low", "Medium", "High", "Critical"];
+
+const STATUSES = [
+  "New",
+  "Open",
+  "In Progress",
+  "Waiting for User",
+  "Resolved",
+  "Closed",
+];
 
 function statusVariant(status: string) {
   switch (status) {
@@ -100,12 +109,25 @@ export default function SeeTicket() {
 
   const ticket = data?.ticket;
 
+  // For Admins: Fetch staff/admins list to populate assignee dropdown
+  const { data: usersData } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => api.get<{ users: UserType[] }>("/users"),
+    enabled: Boolean(user && user.role === "ADMIN"),
+  });
+
+  const availableAdmins = (usersData?.users ?? []).filter(
+    (u) => u.role === "ADMIN"
+  );
+
   // Edit state
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Other");
   const [priority, setPriority] = useState("Medium");
+  const [status, setStatus] = useState("New");
+  const [assignedToId, setAssignedToId] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -116,6 +138,10 @@ export default function SeeTicket() {
       setDescription(ticket.description || "");
       setCategory(ticket.category || "Other");
       setPriority(ticket.priority || "Medium");
+      setStatus(ticket.status || "New");
+      setAssignedToId(
+        ticket.assigned_to_id ? String(ticket.assigned_to_id) : ""
+      );
     }
   }, [ticket]);
 
@@ -178,6 +204,10 @@ export default function SeeTicket() {
     setDescription(ticket.description);
     setCategory(ticket.category);
     setPriority(ticket.priority);
+    setStatus(ticket.status);
+    setAssignedToId(
+      ticket.assigned_to_id ? String(ticket.assigned_to_id) : ""
+    );
     setSaveError(null);
     setIsEditing(true);
   }
@@ -188,10 +218,13 @@ export default function SeeTicket() {
     setDescription(ticket.description);
     setCategory(ticket.category);
     setPriority(ticket.priority);
+    setStatus(ticket.status);
+    setAssignedToId(
+      ticket.assigned_to_id ? String(ticket.assigned_to_id) : ""
+    );
     setSaveError(null);
     setIsEditing(false);
   }
-
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -204,14 +237,22 @@ export default function SeeTicket() {
     setSaveError(null);
 
     try {
-      await api.put(`/tickets/${ticket_id}`, {
+      const payload: Record<string, unknown> = {
         title: title.trim(),
         description: description.trim(),
         category,
         priority,
-      });
+      };
 
+      // If user is Admin, also allow updating status and technician assignment
+      if (user?.role === "ADMIN") {
+        payload.status = status;
+        payload.assigned_to_id = assignedToId ? Number(assignedToId) : null;
+      }
+
+      await api.put(`/tickets/${ticket_id}`, payload);
       await queryClient.invalidateQueries({ queryKey: ["ticket", ticket_id] });
+      await queryClient.invalidateQueries({ queryKey: ["tickets"] });
       setIsEditing(false);
     } catch (err: unknown) {
       setSaveError(
@@ -260,7 +301,9 @@ export default function SeeTicket() {
           <CardHeader>
             <CardTitle className="text-lg">Edit Ticket Details</CardTitle>
             <CardDescription>
-              Update the ticket subject, category, priority, and description.
+              {user?.role === "ADMIN"
+                ? "Update subject, category, priority, status, assignment, and description."
+                : "Update your ticket subject, category, priority, and description."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -309,6 +352,46 @@ export default function SeeTicket() {
                   </select>
                 </Field>
               </div>
+
+              {/* Admin-only controls: Status & Assignee */}
+              {user?.role === "ADMIN" && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 border-t pt-4">
+                  <Field>
+                    <FieldLabel htmlFor="edit-status">Status (Admin)</FieldLabel>
+                    <select
+                      id="edit-status"
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-medium"
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s} value={s} className="bg-popover text-popover-foreground">
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel htmlFor="edit-assignee">Assign Technician (Admin)</FieldLabel>
+                    <select
+                      id="edit-assignee"
+                      value={assignedToId}
+                      onChange={(e) => setAssignedToId(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      <option value="" className="bg-popover text-popover-foreground">
+                        -- Unassigned --
+                      </option>
+                      {availableAdmins.map((admin) => (
+                        <option key={admin.id} value={String(admin.id)} className="bg-popover text-popover-foreground">
+                          {admin.name} ({admin.email})
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+              )}
 
               <Field>
                 <FieldLabel htmlFor="edit-description">Description</FieldLabel>
@@ -376,10 +459,15 @@ export default function SeeTicket() {
                 Created by {ticket.creator_name}
               </span>
 
-              {ticket.assignee_name && (
+              {ticket.assignee_name ? (
                 <span className="inline-flex items-center gap-1.5">
                   <UserCheck className="h-3.5 w-3.5" />
                   Assigned to {ticket.assignee_name}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                  <UserCheck className="h-3.5 w-3.5" />
+                  Unassigned
                 </span>
               )}
 

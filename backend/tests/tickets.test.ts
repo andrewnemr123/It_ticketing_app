@@ -217,4 +217,84 @@ describe("Ticket Controller & CRUD API Tests", () => {
       expect(res.body.ticket.status).toBe("Resolved");
     });
   });
+
+  describe("PUT /api/tickets/:id (Edit Ticket)", () => {
+    it("should allow an employee to edit their own ticket title and description", async () => {
+      const updatedTicket = {
+        ...mockTicket,
+        title: "Updated VPN Issue",
+        description: "New updated details",
+      };
+
+      vi.spyOn(pool, "execute")
+        .mockResolvedValueOnce([[mockTicket], []] as any) // getTicketById
+        .mockResolvedValueOnce([{ affectedRows: 1 }, []] as any) // UPDATE ticket
+        .mockResolvedValueOnce([[updatedTicket], []] as any); // getTicketById after update
+
+      const res = await request(app)
+        .put("/api/tickets/1")
+        .set("Authorization", `Bearer ${employeeToken}`)
+        .send({
+          title: "Updated VPN Issue",
+          description: "New updated details",
+          category: "Network",
+          priority: "High",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe("Ticket updated successfully");
+      expect(res.body.ticket.title).toBe("Updated VPN Issue");
+    });
+
+    it("should reject an employee editing another user's ticket with 404", async () => {
+      const otherUserTicket = { ...mockTicket, creator_id: 99 };
+      vi.spyOn(pool, "execute").mockResolvedValueOnce([[otherUserTicket], []] as any);
+
+      const res = await request(app)
+        .put("/api/tickets/1")
+        .set("Authorization", `Bearer ${employeeToken}`)
+        .send({
+          title: "Hacked Ticket",
+          description: "Trying to edit someone else's ticket",
+        });
+
+      expect(res.status).toBe(404);
+    });
+
+    it("should allow admin to edit ticket, change status, and assign a technician", async () => {
+      const adminAssignedTicket = {
+        ...mockTicket,
+        status: "In Progress",
+        assigned_to_id: 1,
+        assignee_name: "System Admin",
+      };
+
+      const mockAdminUser = { id: 1, name: "System Admin", role: "ADMIN" };
+
+      vi.spyOn(pool, "execute")
+        .mockResolvedValueOnce([[mockTicket], []] as any) // getTicketById
+        .mockResolvedValueOnce([{ insertId: 10 }, []] as any) // STATUS_CHANGE event
+        .mockResolvedValueOnce([[mockAdminUser], []] as any) // check assignee is admin
+        .mockResolvedValueOnce([{ affectedRows: 1 }, []] as any) // UPDATE ticket
+        .mockResolvedValueOnce([[adminAssignedTicket], []] as any); // getTicketById after update
+
+      const res = await request(app)
+        .put("/api/tickets/1")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          title: "VPN connection issue",
+          description: "Cannot connect to company VPN",
+          category: "Network",
+          priority: "High",
+          status: "In Progress",
+          assigned_to_id: 1,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe("Ticket updated successfully");
+      expect(res.body.ticket.status).toBe("In Progress");
+      expect(res.body.ticket.assigned_to_id).toBe(1);
+    });
+  });
 });
+
