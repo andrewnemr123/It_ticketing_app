@@ -17,7 +17,6 @@ interface UserRow extends RowDataPacket {
 }
 
 function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, process.env.JWT_SECRET as string, {
   const secret = process.env.JWT_SECRET || "default_jwt_secret_key_it_ticketing";
   return jwt.sign(payload, secret, {
     expiresIn: process.env.JWT_EXPIRES_IN || "8h",

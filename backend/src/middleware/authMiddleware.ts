@@ -26,12 +26,9 @@ export function authenticateToken(
   }
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as JwtPayload;
     const secret = process.env.JWT_SECRET || "default_jwt_secret_key_it_ticketing";
     const decoded = jwt.verify(token, secret) as JwtPayload;
+
 
 
     req.user = {

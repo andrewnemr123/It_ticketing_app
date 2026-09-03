@@ -1,4 +1,4 @@
-s# IT Ticket Management System - Backend API
+# IT Ticket Management System - Backend API
 
 A secure, high-performance RESTful API backend for an IT Ticket Management System built with **Node.js, Express, TypeScript, and MySQL**.
 

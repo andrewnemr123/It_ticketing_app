@@ -38,8 +38,8 @@ docker compose exec backend npm run seed
 
 ### 5. Access the Application
 - **Frontend App**: [http://localhost:5173](http://localhost:5173)
-- **Backend API**: [http://localhost:5001/api](http://localhost:5001/api)
-- **API Health Check**: [http://localhost:5001/api/health](http://localhost:5001/api/health)
+- **Backend API**: [http://localhost:5000/api](http://localhost:5000/api)
+- **API Health Check**: [http://localhost:5000/api/health](http://localhost:5000/api/health)
 
 
 ---
@@ -78,4 +78,4 @@ All demo accounts use the password: **`Password123`**
 ---
 
 ## Note on macOS Port Allocation
-On macOS (macOS Monterey, Ventura, Sonoma, Sequoia), port `5000` is reserved by default for macOS AirPlay Receiver (`ControlCenter`). This project maps the backend API to host port **`5001`** (`5001:5000`) so it runs cleanly on macOS without requiring users to disable AirPlay Receiver.
+On macOS (macOS Monterey, Ventura, Sonoma, Sequoia), port `5000` is reserved by default for macOS AirPlay Receiver (`ControlCenter`). This project maps the backend API to host port **`5000`** (`5000:5000`) so it runs cleanly on macOS without requiring users to disable AirPlay Receiver.
