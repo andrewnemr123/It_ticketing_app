@@ -169,4 +169,48 @@ describe("User Controller & Management API Tests", () => {
       expect(res.body.user.role).toBe("ADMIN");
     });
   });
+
+  describe("DELETE /api/users/:id (Admin Delete User)", () => {
+    it("should prevent an admin from deleting their own account with 400", async () => {
+      const res = await request(app)
+        .delete("/api/users/1") // Admin user ID is 1
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain("cannot delete your own account");
+    });
+
+    it("should return 404 if user to delete does not exist", async () => {
+      vi.spyOn(pool, "execute").mockResolvedValueOnce([[], []] as any);
+
+      const res = await request(app)
+        .delete("/api/users/999")
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe("User not found");
+    });
+
+    it("should successfully delete user and clean up dependencies", async () => {
+      const mockConn = {
+        beginTransaction: vi.fn().mockResolvedValue(undefined),
+        execute: vi.fn().mockResolvedValue([{ affectedRows: 1 }]),
+        commit: vi.fn().mockResolvedValue(undefined),
+        rollback: vi.fn().mockResolvedValue(undefined),
+        release: vi.fn(),
+      };
+
+      vi.spyOn(pool, "execute").mockResolvedValueOnce([[mockUser], []] as any); // find user
+      vi.spyOn(pool, "getConnection").mockResolvedValueOnce(mockConn as any);
+
+      const res = await request(app)
+        .delete("/api/users/2")
+        .set("Authorization", `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe("User deleted");
+      expect(mockConn.commit).toHaveBeenCalled();
+    });
+  });
 });
+

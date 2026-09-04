@@ -93,10 +93,57 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(404, "User not found");
   }
 
-  await pool.execute("DELETE FROM `user` WHERE id = ?", [id]);
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
 
-  res.json({ message: "User deleted" });
+    // 1. Unassign tickets assigned to this user
+    await conn.execute(
+      "UPDATE ticket SET assigned_to_id = NULL WHERE assigned_to_id = ?",
+      [id]
+    );
+
+    // 2. Detach creator on tickets
+    await conn.execute(
+      "UPDATE ticket SET creator_id = NULL WHERE creator_id = ?",
+      [id]
+    );
+
+    // 3. Remove ticket attachments created by this user
+    await conn.execute(
+      "DELETE FROM ticket_attachment WHERE user_id = ?",
+      [id]
+    );
+
+    // 4. Remove ticket events created by this user
+    await conn.execute(
+      "DELETE FROM ticket_event WHERE user_id = ?",
+      [id]
+    );
+
+    // 5. Clean up password reset tokens if present
+    try {
+      await conn.execute(
+        "DELETE FROM password_reset_tokens WHERE user_id = ?",
+        [id]
+      );
+    } catch {
+      // ignore if table does not exist or user has no tokens
+    }
+
+    // 6. Delete the user
+    await conn.execute("DELETE FROM `user` WHERE id = ?", [id]);
+
+    await conn.commit();
+    res.json({ message: "User deleted" });
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 });
+
 
 // ---------------------------------------------------------------------------
 // PUT /api/users/:id/role   (ADMIN)
